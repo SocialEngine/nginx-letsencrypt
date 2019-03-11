@@ -1,0 +1,6 @@
+.git
+.gitignore
+local/env
+.circleci
+node_modules/
+local/

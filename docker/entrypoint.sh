@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-touch /app/local/env
-source /app/local/env
-
 function check_docker_link() {
     if [ $# -lt 3 ]; then
         echo "Usage: check_docker_link <name> <addr> <port>"
@@ -54,7 +51,11 @@ check_writable_directory '/etc/nginx/certs'
 check_writable_directory '/etc/letsencrypt'
 check_writable_directory '/etc/nginx/vhost.d'
 check_writable_directory '/usr/share/nginx/html'
-check_writable_directory '/app/db'
+
+if [[ -z "$SERVER_ID" ]]; then
+    echo "SERVER_ID variable is missing"
+    exit 1
+fi
 
 if [[ ! -f /etc/letsencrypt/dhparam.pem ]]; then
     echo "Creating Diffie-Hellman group (can take several minutes...)"
@@ -62,13 +63,17 @@ if [[ ! -f /etc/letsencrypt/dhparam.pem ]]; then
     mv /etc/letsencrypt/.dhparam.pem.tmp /etc/letsencrypt/dhparam.pem || exit 1
 fi
 
-if check_docker_link "redis" "redis" "6379"; then
-    echo "redis is ready"
+if check_docker_link "redis" "${REDIS_HOST}" "${REDIS_PORT}"; then
+    echo "Redis is running on ${REDIS_HOST}:${REDIS_PORT}"
 fi
 
 echo "Starting nginx..."
 nginx
+echo "Starting cron..."
+(crontab -l ; echo "* * * * * echo "Running cron" >> /var/log/cron.log") | crontab
+service cron start
+service cron status
 echo "Starting node server..."
-cd /app && ./node_modules/.bin/forever server.js
+cd /app && ./node_modules/.bin/forever ./src/server.js
 cd /app && ./node_modules/.bin/forever --fifo logs 0 &
 wait

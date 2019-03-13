@@ -2,10 +2,10 @@
   "name": "@socialengine/nginx-letsencrypt",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
@@ -23,5 +23,8 @@
     "forever": "^0.15.3",
     "node-fetch": "^2.3.0",
     "redis": "^2.8.0"
+  },
+  "devDependencies": {
+    "@socialengine/lint": "^1.0.1"
   }
 }

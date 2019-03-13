@@ -2,6 +2,8 @@ version: "3"
 services:
     web:
         build: ./
+        env_file:
+          - ./.env
         ports:
         - 80:80
         - 443:443
@@ -9,9 +11,12 @@ services:
         - ./local/nginx/htpasswd:/etc/nginx/htpasswd
         - ./local/nginx/vhost.d:/etc/nginx/vhost.d
         - ./local/nginx/letsencrypt:/etc/letsencrypt
-        - ./server.js:/app/server.js
-        - ./db:/app/db
+        - ./src:/app/src
         restart: always
+        environment:
+          - SERVER_ID=localhost
+          - REDIS_HOST=redis
+          - REDIS_PORT=6379
         depends_on:
           - redis
     redis:

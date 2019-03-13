@@ -22,6 +22,7 @@ async function getCert (domain) {
 async function getCerts () {
     const certs = {};
     const members = await publisher.sMembers(key('certs'));
+    log('members:', members);
     for (let member of members) {
         certs[member] = await getCertParent(member);
     }
@@ -68,30 +69,38 @@ async function certbot ({email, domain, force = false}) {
     // console.log(domains);
     const cmd = '/app/certbot-auto certonly -t --agree-tos ' +
         '-m ' + email + ' -n ' +
-        domains + ' ' +
         '--expand ' +
         (force === false ? '' : '--force-renewal ') +
-        '--webroot -w /usr/share/nginx/html';
+        '--webroot -w /usr/share/nginx/html ' +
+        domains;
 
     const response = await execute(cmd);
-    log('response2', response);
+    log('certbot response:', response);
     if (response.indexOf('The following errors were reported by the server') !== -1) {
         throw new Error('DOMAIN_DNS_FAILED');
     }
     const parentCert = success[0];
     const baseDir = path.join(`/etc/letsencrypt/live/${parentCert}`);
-    const certificates = ['cert.pem', 'chain.pem', 'fullchain.pem', 'privatekey.pem'];
+    const certificates = ['cert.pem', 'chain.pem', 'fullchain.pem', 'privkey.pem'];
     if (fs.existsSync(baseDir)) {
         for (let certName of certificates) {
+            const certFile = path.join(baseDir, certName);
+            if (!fs.existsSync(certFile)) {
+                log('Missing cert file: ' + certFile);
+                continue;
+            }
+            log('Adding cert file: ' + certFile);
             await publisher.set(key('keys:' + parentCert + ':' + certName), JSON.stringify({
                 certificate: fs.readFileSync(
-                    path.join(baseDir, certName),
+                    certFile,
                     'utf-8'
                 )
             }));
         }
     }
     for (let item of success) {
+        log('redis:set:' + key('certs:' + item));
+        log('redis:sAdd:' + key('certs'));
         await publisher.set(key('certs:' + item), success[0]).catch(handleCatch);
         await publisher.sAdd(key('certs'), item).catch(handleCatch);
     }

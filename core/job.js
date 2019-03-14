@@ -1,7 +1,6 @@
-const {publisher, key} = require('./redis');
-const {certbot} = require('./letsencrypt');
+const redis = require('./redis');
+const letsencrypt = require('./letsencrypt');
 const {log, handleCatch} = require('./util');
-const {updateConf} = require('./nginx');
 
 async function createJob (data) {
     const id = new Date().getTime();
@@ -9,13 +8,13 @@ async function createJob (data) {
         id: id,
         ...data
     };
-    await publisher.sAdd(key('jobs'), id);
-    await publisher.set(key('jobs:' + id), JSON.stringify(job));
+    await redis.publisher.sAdd('jobs', id);
+    await redis.publisher.set('jobs:' + id, JSON.stringify(job));
     return id;
 }
 
 async function getJob (id) {
-    let job = await publisher.get(key('jobs:' + id));
+    let job = await redis.publisher.get('jobs:' + id);
     if (!job) {
         return false;
     }
@@ -23,8 +22,8 @@ async function getJob (id) {
 }
 
 async function clearJob (id) {
-    await publisher.sRem(key('jobs'), id);
-    await publisher.del(key('jobs:' + id));
+    await redis.publisher.sRem('jobs', id);
+    await redis.publisher.del('jobs:' + id);
 }
 
 async function runJob (id) {
@@ -36,7 +35,7 @@ async function runJob (id) {
             return resolve(false);
         }
         const tryCert = async function tryAgain () {
-            return certbot(job)
+            return letsencrypt.certbot(job)
                 .then(() => resolve(true))
                 .catch(async e => {
                     if (e.message === 'DOMAIN_DNS_FAILED') {
@@ -55,7 +54,10 @@ async function runJob (id) {
     });
     await clearJob(id);
     if (response) {
-        await updateConf().catch(handleCatch);
+        // await updateConf().catch(handleCatch);
+        redis.publisher.publish(redis.channel, JSON.stringify({
+            action: 'nginx:update'
+        }));
     }
     log('Job completed: ' + id);
     return true;

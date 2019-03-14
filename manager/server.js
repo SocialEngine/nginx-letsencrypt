@@ -1,15 +1,13 @@
 const express = require('express');
 const http = require('http');
 const bodyParser = require('body-parser');
-const redis = require('./redis');
-const {createJob} = require('./job');
-const util = require('./util');
-const {getCert} = require('./letsencrypt');
-const auth = require('./auth');
+const {createJob} = require('../core/job');
+const util = require('../core/util');
+const {getCert} = require('../core/letsencrypt');
+const auth = require('../core/auth');
 
 const app = express();
 const httpServer = http.createServer(app);
-const channel = 'nginx-letsencrypt';
 
 async function api (req, res, next) {
     const token = req.headers['x-auth-token'] || '';
@@ -47,6 +45,11 @@ async function main () {
         });
     });
 
+    app.get('/.well-known/acme-challenge/*', function (req, res) {
+        util.log('acme challenge:', req.path);
+        res.send('Success');
+    });
+
     app.use(api);
 
     app.get('/api/certs/:domain', async function (req, res) {
@@ -60,13 +63,8 @@ async function main () {
             domain: body.domain,
             force: body.force || false
         });
-        redis.publisher.publish(channel, JSON.stringify({
-            action: 'job',
-            payload: {
-                id: job
-            }
-        }));
 
+        util.execute('node /app/console job ' + job);
         res.send({
             processing: job
         });
@@ -76,16 +74,6 @@ async function main () {
         res.send('Page not found.');
     });
 
-    redis.subscriber.on('message', async (name, message) => {
-        if (name === channel) {
-            try {
-                message = JSON.parse(message);
-                util.execute('node /app/src/console.js ' + message.action + ' ' + message.payload.id);
-            } catch (e) {}
-        }
-    });
-
-    redis.subscriber.subscribe(channel);
     httpServer.listen(3000);
 }
 

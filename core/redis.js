@@ -37,11 +37,15 @@ function createClient (params) {
     };
 }
 
-const publisher = exports.publisher = createClient(params);
+exports.channel = 'nginx-letsencrypt';
+exports.publisher = createClient(params);
 exports.subscriber = createClient(params);
 
+/**
+ * @deprecated
+ * @param key
+ * @returns {string}
+ */
 exports.key = function (key) {
-    return env('SERVER_ID') + ':' + key;
+    return key;
 };
-
-publisher.sAdd('servers', env('SERVER_ID'));

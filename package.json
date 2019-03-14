@@ -2,10 +2,9 @@
   "name": "@socialengine/nginx-letsencrypt",
   "version": "1.0.0",
   "description": "",
-  "main": "src/server.js",
+  "main": "./console",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -17,13 +16,13 @@
     "url": "https://github.com/SocialEngine/nginx-letsencrypt/issues"
   },
   "homepage": "https://github.com/SocialEngine/nginx-letsencrypt#readme",
-  "dependencies": {
-    "body-parser": "^1.18.3",
-    "express": "^4.16.4",
-    "forever": "^0.15.3",
-    "node-fetch": "^2.3.0",
-    "redis": "^2.8.0"
-  },
+    "dependencies": {
+        "body-parser": "^1.18.3",
+        "express": "^4.16.4",
+        "forever": "^0.15.3",
+        "node-fetch": "^2.3.0",
+        "redis": "^2.8.0"
+    },
   "devDependencies": {
     "@socialengine/lint": "^1.0.1"
   }

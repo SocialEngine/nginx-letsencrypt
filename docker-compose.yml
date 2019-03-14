@@ -1,23 +1,46 @@
 version: "3"
 services:
-    web:
-        build: ./
+    server:
+        build:
+            dockerfile: server/Dockerfile
+            context: .
         env_file:
           - ./.env
         ports:
         - 80:80
         - 443:443
         volumes:
-        - ./local/nginx/htpasswd:/etc/nginx/htpasswd
-        - ./local/nginx/vhost.d:/etc/nginx/vhost.d
-        - ./local/nginx/letsencrypt:/etc/letsencrypt
-        - ./src:/app/src
+        - ./server/nginx/certs:/etc/nginx/certs
+        - ./server/nginx/vhost.d:/etc/nginx/vhost.d
+        - ./server/nginx/html:/usr/share/nginx/html
+        - ./server/listener.js:/app/server/listener.js
+        - ./core:/app/core
         restart: always
         environment:
-          - SERVER_ID=localhost
           - REDIS_HOST=redis
           - REDIS_PORT=6379
         depends_on:
           - redis
+    manager:
+        build:
+            dockerfile: manager/Dockerfile
+            context: .
+        env_file:
+        - ./.env
+        ports:
+        - 8080:3000
+        volumes:
+        - ./manager/public:/app/manager/certs
+        - ./manager/public:/app/manager/letsencrypt
+        - ./manager/public:/app/manager/public
+        - ./manager/server.js:/app/manager/server.js
+        - ./core:/app/core
+        restart: always
+        environment:
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        depends_on:
+        - redis
+        - server
     redis:
         image: redis:alpine

@@ -1,6 +1,7 @@
 const {runJob} = require('./job');
 const {handleError, handleCatch, log} = require('./util');
-const {updateConf} = require('./nginx');
+const nginx = require('./nginx');
+const redis = require('./redis');
 const auth = require('./auth');
 
 function end (type = 0) {
@@ -8,7 +9,6 @@ function end (type = 0) {
 }
 
 async function main (cmd) {
-    log('Console cmd: ' + cmd);
     switch (cmd) {
         case 'job':
             const id = process.argv[3] || '';
@@ -17,10 +17,17 @@ async function main (cmd) {
             }
             break;
         case 'update':
-            await updateConf().catch(handleCatch);
+            await nginx.update().catch(handleCatch);
             break;
         case 'token':
             console.log(await auth.generate());
+            break;
+        case 'ping':
+            log('Ping servers...');
+            redis.publisher.publish(redis.channel, 'ping');
+            break;
+        case 'nginx:init':
+            await nginx.init();
             break;
     }
 }
